@@ -1,16 +1,16 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import nodeHtmlToImage from "node-html-to-image";
+import nodeHtmlToImage from "node-html-to-image"; // Importa la librería para convertir HTML a imagen
 
-dotenv.config();
+dotenv.config(); // Carga las variables de entorno desde .env
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const TOKEN = process.env.TOKEN;
+const PORT = process.env.PORT || 3000; // Define el puerto del servidor
+const TOKEN = process.env.TOKEN; // Obtiene el token de autenticación de las variables de entorno
 
-app.use(cors());
-app.use(express.json());
+app.use(cors()); // Habilita CORS para permitir peticiones desde diferentes orígenes
+app.use(express.json()); // Habilita el parseo de JSON en las peticiones
 
 // Función para convertir un objeto JSON en una cadena HTML estilizada profesionalmente
 const jsonToHtml = (endpoint, jsonObject) => {
@@ -21,14 +21,13 @@ const jsonToHtml = (endpoint, jsonObject) => {
     return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   };
 
-  // Genera el contenido específico basado en el endpoint, si es necesario
-  let dynamicContent = '';
-  let title = 'Resultados de la Consulta';
+  let dynamicContent = ''; // Contenido HTML que variará según el endpoint
+  let title = 'Resultados de la Consulta'; // Título por defecto de la imagen
 
-  // Ajuste: La API de Leder Data para Reniec devuelve los datos bajo la clave 'result'
+  // Lógica específica para el endpoint de RENIEC
   if (endpoint.includes('reniec') && jsonObject && jsonObject.message === "found data" && jsonObject.result) {
-    const data = jsonObject.result || {}; // Accede a la clave 'result'
-    title = 'Información RENIEC';
+    const data = jsonObject.result || {}; // Accede a la clave 'result' donde están los datos de RENIEC
+    title = 'Información RENIEC'; // Título específico para RENIEC
 
     // Construye la URL de la imagen base64 si está disponible
     const photoSrc = data.imagenes && data.imagenes.foto ? `data:image/jpeg;base64,${data.imagenes.foto}` : '';
@@ -81,7 +80,9 @@ const jsonToHtml = (endpoint, jsonObject) => {
           <p class="detail-value text-sm">${capitalize(data.desDireccion || 'No disponible')}, ${capitalize(data.distDireccion || '')}, ${capitalize(data.provDireccion || '')}, ${capitalize(data.departamento || '')}</p>
       </div>
     `;
-  } else if (jsonObject && jsonObject.message && jsonObject.message.includes("not found")) {
+  }
+  // Lógica para cuando los datos no son encontrados
+  else if (jsonObject && jsonObject.message && jsonObject.message.includes("not found")) {
     title = 'Datos no encontrados';
     dynamicContent = `
         <div class="text-center py-8">
@@ -91,6 +92,7 @@ const jsonToHtml = (endpoint, jsonObject) => {
         </div>
     `;
   }
+  // Lógica para errores generales de la API externa
   else if (jsonObject && jsonObject.success === false) {
     title = 'Error en la Consulta';
     dynamicContent = `
@@ -100,14 +102,16 @@ const jsonToHtml = (endpoint, jsonObject) => {
             ${jsonObject.error ? `<p class="text-gray-500 text-sm mt-2">Detalle: ${jsonObject.error}</p>` : ''}
         </div>
     `;
-  } else {
-    // Si no es un endpoint específico o hay error, muestra el JSON crudo
+  }
+  // Si no es un endpoint específico o hay un formato inesperado, muestra el JSON crudo
+  else {
     const jsonString = JSON.stringify(jsonObject, null, 2);
     dynamicContent = `
       <pre class="bg-gray-50 p-4 rounded-md text-gray-700 text-sm overflow-auto max-h-[400px]"><code>${jsonString}</code></pre>
     `;
   }
 
+  // Retorna la plantilla HTML completa con estilos y contenido dinámico
   return `
     <html lang="es">
     <head>
@@ -228,10 +232,10 @@ const jsonToHtml = (endpoint, jsonObject) => {
   `;
 };
 
-// Función reutilizable modificada para enviar datos a Leder Data y devolver una imagen
+// Función reutilizable para enviar datos a Leder Data y devolver una imagen
 const postToLederData = async (endpointPath, payload, res) => {
   try {
-    const url = `https://leder-data-api.ngrok.dev/v1.7${endpointPath}`; // Construye la URL completa
+    const url = `https://leder-data-api.ngrok.dev/v1.7${endpointPath}`; // Construye la URL completa de la API externa
     console.log(`[${new Date().toISOString()}] Realizando POST a: ${url} con payload:`, JSON.stringify(payload));
 
     const response = await fetch(url, {
@@ -240,17 +244,17 @@ const postToLederData = async (endpointPath, payload, res) => {
       body: JSON.stringify(payload),
     });
 
+    // Manejo de errores si la respuesta de Leder Data no es exitosa
     if (!response.ok) {
         const errorText = await response.text();
         console.error(`[${new Date().toISOString()}] Error en la respuesta de Leder Data (${response.status}):`, errorText);
-        // Intenta parsear como JSON si es posible, de lo contrario usa el texto
         let errorData;
         try {
             errorData = JSON.parse(errorText);
         } catch (e) {
             errorData = { message: `Error desconocido de Leder Data: ${errorText}` };
         }
-        // Genera una imagen de error
+        // Genera una imagen de error para el cliente
         const errorHtmlContent = jsonToHtml(endpointPath, { success: false, message: `Error de la API externa (${response.status})`, error: errorData.message || errorText });
         const errorImage = await nodeHtmlToImage({
             html: errorHtmlContent,
@@ -262,38 +266,36 @@ const postToLederData = async (endpointPath, payload, res) => {
         });
         res.writeHead(response.status, { 'Content-Type': 'image/png' });
         res.end(errorImage, 'binary');
-        return; // Detener la ejecución aquí
+        return; // Detener la ejecución
     }
 
-    const data = await response.json();
-    console.log(`[${new Date().toISOString()}] Respuesta de Leder Data recibida:`, JSON.stringify(data).substring(0, 200) + '...'); // Limitar log
+    const data = await response.json(); // Parsea la respuesta JSON de Leder Data
+    console.log(`[${new Date().toISOString()}] Respuesta de Leder Data recibida:`, JSON.stringify(data).substring(0, 200) + '...'); // Log de la respuesta (limitado)
 
-    // Convierte los datos JSON a HTML, pasando el endpoint para personalización
+    // Convierte los datos JSON a HTML, pasando el endpoint para personalizar el diseño
     const htmlContent = jsonToHtml(endpointPath, data);
     console.log(`[${new Date().toISOString()}] HTML generado. Intentando generar imagen...`);
 
     // Genera la imagen a partir del HTML
     const image = await nodeHtmlToImage({
       html: htmlContent,
-      quality: 90,
-      type: 'png',
-      encoding: 'binary',
-      // Añade un selector para capturar solo el div principal y no el fondo entero
-      selector: '.container-card', // Captura solo la tarjeta de resultados
+      quality: 90, // Calidad de la imagen (0-100)
+      type: 'png', // Formato de la imagen
+      encoding: 'binary', // Codificación de la salida (buffer binario)
+      selector: '.container-card', // Captura solo el div con la clase 'container-card'
       puppeteerArgs: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'], // Necesario para entornos como Railway/Docker
-        // Puedes agregar más argumentos si es necesario, como la ruta al ejecutable de Chrome
+        args: ['--no-sandbox', '--disable-setuid-sandbox'], // Argumentos necesarios para Puppeteer en entornos de servidor como Railway
       }
     });
 
     console.log(`[${new Date().toISOString()}] Imagen generada exitosamente. Enviando respuesta.`);
-    // Envía la imagen como respuesta
-    res.writeHead(200, { 'Content-Type': 'image/png' });
-    res.end(image, 'binary');
+    // Envía la imagen como respuesta HTTP
+    res.writeHead(200, { 'Content-Type': 'image/png' }); // Establece el tipo de contenido a imagen PNG
+    res.end(image, 'binary'); // Envía el buffer de la imagen
 
   } catch (err) {
     console.error(`[${new Date().toISOString()}] Error crítico al procesar solicitud para ${endpointPath}:`, err);
-    // Genera una imagen de error genérico si algo falla completamente
+    // Genera una imagen de error genérico si algo falla completamente en el proceso
     const genericErrorHtml = jsonToHtml(endpointPath, { success: false, message: "Error interno del servidor al generar la imagen.", error: err.message });
     const genericErrorImage = await nodeHtmlToImage({
         html: genericErrorHtml,
@@ -317,7 +319,7 @@ const postToLederData = async (endpointPath, payload, res) => {
   }
 };
 
-// Rutas tipo GET (como Factiliza) - Pasamos el fragmento de la URL como 'endpointPath'
+// Definición de las rutas GET de tu API
 app.get("/reniec", (req, res) => {
   postToLederData("/persona/reniec", {
     dni: req.query.dni,
@@ -475,7 +477,7 @@ app.get("/fiscalia-nombres", (req, res) => {
   }, res);
 });
 
-// Iniciar servidor
+// Iniciar el servidor Express
 app.listen(PORT, () => {
   console.log(`✅ API Factiliza-clon corriendo en puerto ${PORT}`);
 });
