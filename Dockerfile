@@ -1,4 +1,4 @@
-     # Usa una imagen base de Node.js que sea compatible con Puppeteer
+    # Usa una imagen base de Node.js que sea compatible con Puppeteer
     # node:18-slim es una buena opción ya que es ligera pero basada en Debian/Ubuntu
     FROM node:18-slim
 
