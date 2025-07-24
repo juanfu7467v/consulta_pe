@@ -1,69 +1,72 @@
 import express from "express";
 import cors from "cors";
-import { nodeHtmlToImage } from "node-html-to-image";
+import pkg from "node-html-to-image";
+
+const { nodeHtmlToImage } = pkg;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Ruta para generar imagen
+// Ruta para convertir HTML en imagen
 app.get("/imagen", async (req, res) => {
-  const dni = req.query.dni || "12345678";
   const nombre = req.query.nombre || "Juan Pérez";
+  const dni = req.query.dni || "12345678";
 
   try {
     const imageBuffer = await nodeHtmlToImage({
+      output: "./output.png", // también se guarda localmente por si quieres revisar
       html: `
         <html>
           <head>
             <style>
               body {
                 font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+              }
+              .card {
+                border: 2px solid #25D366;
                 padding: 20px;
-                background-color: #e5f5ec;
-              }
-              .container {
-                border: 2px solid #25d366;
-                padding: 30px;
-                border-radius: 10px;
-                background-color: white;
-                width: 500px;
-                margin: auto;
+                border-radius: 12px;
+                background-color: #eaffea;
                 text-align: center;
-              }
-              h1 {
-                color: #128c7e;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
               }
             </style>
           </head>
           <body>
-            <div class="container">
-              <h1>Resultado de Consulta</h1>
-              <p><strong>DNI:</strong> ${dni}</p>
+            <div class="card">
+              <h1>Resultado de Búsqueda</h1>
               <p><strong>Nombre:</strong> ${nombre}</p>
+              <p><strong>DNI:</strong> ${dni}</p>
+              <p>Consulta realizada con éxito</p>
             </div>
           </body>
         </html>
       `,
       type: "png",
-      encoding: "buffer",
+      encoding: "binary"
     });
 
+    // Establece cabeceras para que se muestre y descargue como imagen
     res.setHeader("Content-Type", "image/png");
-    res.setHeader("Content-Disposition", "inline; filename=result.png");
-    res.send(imageBuffer);
+    res.setHeader("Content-Disposition", "inline; filename=resultado.png");
+    res.end(imageBuffer, "binary");
   } catch (error) {
-    console.error("Error al generar imagen:", error);
-    res.status(500).send("Error al generar imagen.");
+    console.error("Error generando imagen:", error);
+    res.status(500).send("Error generando la imagen");
   }
 });
 
-// Ruta de prueba
 app.get("/", (req, res) => {
-  res.send("Servidor funcionando correctamente ✔️");
+  res.send("API funcionando correctamente");
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor en http://localhost:${PORT}`);
+  console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
