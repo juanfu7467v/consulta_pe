@@ -17,7 +17,8 @@ const jsonToHtml = (endpoint, jsonObject) => {
   // Función auxiliar para capitalizar la primera letra de una cadena
   const capitalize = (s) => {
     if (typeof s !== 'string') return s;
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); // Convertir el resto a minúsculas
+    // Capitaliza la primera letra y convierte el resto a minúsculas
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   };
 
   // Genera el contenido específico basado en el endpoint, si es necesario
@@ -28,40 +29,56 @@ const jsonToHtml = (endpoint, jsonObject) => {
   if (endpoint.includes('reniec') && jsonObject && jsonObject.message === "found data" && jsonObject.result) {
     const data = jsonObject.result || {}; // Accede a la clave 'result'
     title = 'Información RENIEC';
+
+    // Construye la URL de la imagen base64 si está disponible
+    const photoSrc = data.imagenes && data.imagenes.foto ? `data:image/jpeg;base64,${data.imagenes.foto}` : '';
+
     dynamicContent = `
-      <div class="mb-4 text-center">
-          <p class="text-xs text-gray-500">Consulta de DNI</p>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-          <div>
-              <p class="font-semibold text-gray-600">DNI:</p>
-              <p class="text-lg font-bold text-blue-600">${data.nuDni || 'No disponible'}</p>
+      <div class="flex flex-col md:flex-row items-start gap-8 mb-6">
+          <div class="photo-container flex-shrink-0">
+              ${photoSrc ? `<img src="${photoSrc}" alt="Foto DNI">` : `<span class="text-gray-400 text-center text-sm">Sin Foto</span>`}
           </div>
-          <div>
-              <p class="font-semibold text-gray-600">Nombres:</p>
-              <p class="text-lg">${capitalize(data.preNombres || '')} ${capitalize(data.apePaterno || '')} ${capitalize(data.apeMaterno || '')}</p>
-          </div>
-          <div>
-              <p class="font-semibold text-gray-600">Fecha de Nacimiento:</p>
-              <p>${data.feNacimiento || 'No disponible'}</p>
-          </div>
-          <div>
-              <p class="font-semibold text-gray-600">Estado Civil:</p>
-              <p>${capitalize(data.estadoCivil || 'No disponible')}</p>
-          </div>
-          <div>
-              <p class="font-semibold text-gray-600">Sexo:</p>
-              <p>${capitalize(data.sexo || 'No disponible')}</p>
-          </div>
-          <div>
-              <p class="font-semibold text-gray-600">Restricción:</p>
-              <p>${capitalize(data.deRestriccion || 'No disponible')}</p>
+          <div class="flex-grow">
+              <div class="mb-4">
+                  <p class="detail-label">DNI:</p>
+                  <p class="dni-highlight">${data.nuDni || 'No disponible'}</p>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                  <div>
+                      <p class="detail-label">Nombres:</p>
+                      <p class="detail-value">${capitalize(data.preNombres || '')}</p>
+                  </div>
+                  <div>
+                      <p class="detail-label">Apellido Paterno:</p>
+                      <p class="detail-value">${capitalize(data.apePaterno || '')}</p>
+                  </div>
+                  <div>
+                      <p class="detail-label">Apellido Materno:</p>
+                      <p class="detail-value">${capitalize(data.apeMaterno || '')}</p>
+                  </div>
+                  <div>
+                      <p class="detail-label">Fecha de Nacimiento:</p>
+                      <p class="detail-value">${data.feNacimiento || 'No disponible'}</p>
+                  </div>
+                  <div>
+                      <p class="detail-label">Sexo:</p>
+                      <p class="detail-value">${capitalize(data.sexo || 'No disponible')}</p>
+                  </div>
+                  <div>
+                      <p class="detail-label">Estado Civil:</p>
+                      <p class="detail-value">${capitalize(data.estadoCivil || 'No disponible')}</p>
+                  </div>
+                  <div>
+                      <p class="detail-label">Restricción:</p>
+                      <p class="detail-value">${capitalize(data.deRestriccion || 'NINGUNA')}</p>
+                  </div>
+              </div>
           </div>
       </div>
       <hr class="my-6 border-gray-200">
       <div class="text-center">
-          <p class="font-semibold text-gray-600">Dirección:</p>
-          <p class="text-sm text-gray-700">${capitalize(data.desDireccion || 'No disponible')}</p>
+          <p class="detail-label">Dirección:</p>
+          <p class="detail-value text-sm">${capitalize(data.desDireccion || 'No disponible')}, ${capitalize(data.distDireccion || '')}, ${capitalize(data.provDireccion || '')}, ${capitalize(data.departamento || '')}</p>
       </div>
     `;
   } else if (jsonObject && jsonObject.message && jsonObject.message.includes("not found")) {
@@ -97,7 +114,7 @@ const jsonToHtml = (endpoint, jsonObject) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
             body {
@@ -108,22 +125,75 @@ const jsonToHtml = (endpoint, jsonObject) => {
                 justify-content: center;
                 align-items: center;
                 min-height: 100vh;
-                background-color: #f0f4f8; /* Un fondo más suave */
+                background-color: #e0e7ff; /* Un azul claro muy suave */
             }
             .container-card {
                 background-color: #ffffff;
                 border-radius: 12px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-                padding: 2.5rem; /* Aumenta el padding */
-                max-width: 650px; /* Aumenta el ancho máximo para más espacio */
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
+                padding: 3rem; /* Más padding */
+                max-width: 700px; /* Ancho un poco mayor */
                 margin: 2rem auto;
-                border: 1px solid #e2e8f0;
+                border: 2px solid #a7c0f8; /* Borde azul suave */
+                position: relative;
+                overflow: hidden; /* Para el efecto de fondo */
+            }
+            .container-card::before {
+                content: '';
+                position: absolute;
+                top: -50px;
+                left: -50px;
+                right: -50px;
+                bottom: -50px;
+                background: radial-gradient(circle at top left, rgba(167, 192, 248, 0.1) 0%, transparent 50%);
+                z-index: 0;
+            }
+            .content-wrapper {
+                position: relative;
+                z-index: 1; /* Asegura que el contenido esté por encima del pseudo-elemento */
             }
             .header-title {
-                color: #2d3748; /* Color de texto más oscuro */
+                color: #2563eb; /* Azul más vibrante */
                 margin-bottom: 1.5rem;
-                border-bottom: 2px solid #edf2f7; /* Línea separadora */
+                border-bottom: 2px solid #bfdbfe; /* Línea separadora azul claro */
                 padding-bottom: 1rem;
+            }
+            .detail-label {
+                font-weight: 600; /* Semibold */
+                color: #4b5563; /* Gris oscuro */
+                font-size: 0.9rem;
+                margin-bottom: 0.25rem;
+            }
+            .detail-value {
+                color: #1f2937; /* Casi negro */
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+            .dni-highlight {
+                font-size: 1.8rem; /* DNI más grande */
+                font-weight: 700; /* Bold */
+                color: #ef4444; /* Rojo distintivo */
+            }
+            .footer-text {
+                font-size: 0.75rem;
+                color: #9ca3af; /* Gris claro */
+            }
+            .photo-container {
+                width: 120px;
+                height: 150px;
+                border: 2px solid #bfdbfe;
+                border-radius: 8px;
+                overflow: hidden;
+                background-color: #e2e8f0; /* Fondo para la foto */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Sombra para la foto */
+            }
+            .photo-container img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover; /* Asegura que la imagen cubra el área */
             }
             code {
                 background-color: #f8fafc;
@@ -134,21 +204,24 @@ const jsonToHtml = (endpoint, jsonObject) => {
                 white-space: pre-wrap;
                 word-wrap: break-word;
             }
-            /* Scrollbar invisible para pre */
             pre::-webkit-scrollbar {
                 display: none;
             }
             pre {
-                -ms-overflow-style: none; /* IE and Edge */
-                scrollbar-width: none;  /* Firefox */
+                -ms-overflow-style: none;
+                scrollbar-width: none;
             }
         </style>
     </head>
-    <body class="bg-gray-50 p-6">
+    <body class="bg-blue-50 p-8">
         <div class="container-card">
-            <h1 class="text-3xl font-bold header-title text-center">${title}</h1>
-            ${dynamicContent}
-            <p class="text-xs text-gray-400 mt-6 text-center">Generado por tu API de Railway</p>
+            <div class="content-wrapper">
+                <h1 class="text-3xl font-extrabold header-title text-center">
+                    <span class="text-blue-700">FICHA DE DATOS</span> <span class="text-gray-600">RENIEC</span>
+                </h1>
+                ${dynamicContent}
+            </div>
+            <p class="footer-text mt-6 text-center">Datos proporcionados por Leder Data API - Generado por tu API de Railway</p>
         </div>
     </body>
     </html>
@@ -159,15 +232,45 @@ const jsonToHtml = (endpoint, jsonObject) => {
 const postToLederData = async (endpointPath, payload, res) => {
   try {
     const url = `https://leder-data-api.ngrok.dev/v1.7${endpointPath}`; // Construye la URL completa
+    console.log(`[${new Date().toISOString()}] Realizando POST a: ${url} con payload:`, JSON.stringify(payload));
+
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[${new Date().toISOString()}] Error en la respuesta de Leder Data (${response.status}):`, errorText);
+        // Intenta parsear como JSON si es posible, de lo contrario usa el texto
+        let errorData;
+        try {
+            errorData = JSON.parse(errorText);
+        } catch (e) {
+            errorData = { message: `Error desconocido de Leder Data: ${errorText}` };
+        }
+        // Genera una imagen de error
+        const errorHtmlContent = jsonToHtml(endpointPath, { success: false, message: `Error de la API externa (${response.status})`, error: errorData.message || errorText });
+        const errorImage = await nodeHtmlToImage({
+            html: errorHtmlContent,
+            quality: 90,
+            type: 'png',
+            encoding: 'binary',
+            selector: '.container-card',
+            puppeteerArgs: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+        });
+        res.writeHead(response.status, { 'Content-Type': 'image/png' });
+        res.end(errorImage, 'binary');
+        return; // Detener la ejecución aquí
+    }
+
     const data = await response.json();
+    console.log(`[${new Date().toISOString()}] Respuesta de Leder Data recibida:`, JSON.stringify(data).substring(0, 200) + '...'); // Limitar log
 
     // Convierte los datos JSON a HTML, pasando el endpoint para personalización
     const htmlContent = jsonToHtml(endpointPath, data);
+    console.log(`[${new Date().toISOString()}] HTML generado. Intentando generar imagen...`);
 
     // Genera la imagen a partir del HTML
     const image = await nodeHtmlToImage({
@@ -176,7 +279,6 @@ const postToLederData = async (endpointPath, payload, res) => {
       type: 'png',
       encoding: 'binary',
       // Añade un selector para capturar solo el div principal y no el fondo entero
-      // Para esto, asegurate que tu HTML tiene un div principal con una clase o ID única
       selector: '.container-card', // Captura solo la tarjeta de resultados
       puppeteerArgs: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'], // Necesario para entornos como Railway/Docker
@@ -184,13 +286,34 @@ const postToLederData = async (endpointPath, payload, res) => {
       }
     });
 
+    console.log(`[${new Date().toISOString()}] Imagen generada exitosamente. Enviando respuesta.`);
     // Envía la imagen como respuesta
     res.writeHead(200, { 'Content-Type': 'image/png' });
     res.end(image, 'binary');
 
   } catch (err) {
-    console.error(`Error al procesar solicitud para ${endpointPath}:`, err);
-    res.status(500).json({ error: "Error al procesar la solicitud o generar imagen", detalle: err.message });
+    console.error(`[${new Date().toISOString()}] Error crítico al procesar solicitud para ${endpointPath}:`, err);
+    // Genera una imagen de error genérico si algo falla completamente
+    const genericErrorHtml = jsonToHtml(endpointPath, { success: false, message: "Error interno del servidor al generar la imagen.", error: err.message });
+    const genericErrorImage = await nodeHtmlToImage({
+        html: genericErrorHtml,
+        quality: 90,
+        type: 'png',
+        encoding: 'binary',
+        selector: '.container-card',
+        puppeteerArgs: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+    }).catch(e => {
+        console.error(`[${new Date().toISOString()}] Fallo al generar imagen de error:`, e);
+        return null; // Retorna null si incluso la imagen de error falla
+    });
+
+    if (genericErrorImage) {
+        res.writeHead(500, { 'Content-Type': 'image/png' });
+        res.end(genericErrorImage, 'binary');
+    } else {
+        // Como último recurso, envía un JSON de error si no se pudo generar la imagen de error
+        res.status(500).json({ error: "Error al procesar la solicitud y no se pudo generar la imagen de error", detalle: err.message });
+    }
   }
 };
 
