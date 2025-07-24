@@ -17,32 +17,33 @@ const jsonToHtml = (endpoint, jsonObject) => {
   // Función auxiliar para capitalizar la primera letra de una cadena
   const capitalize = (s) => {
     if (typeof s !== 'string') return s;
-    return s.charAt(0).toUpperCase() + s.slice(1);
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); // Convertir el resto a minúsculas
   };
 
   // Genera el contenido específico basado en el endpoint, si es necesario
   let dynamicContent = '';
   let title = 'Resultados de la Consulta';
 
-  if (endpoint.includes('reniec') && jsonObject && jsonObject.success) {
-    const data = jsonObject.data || {};
+  // Ajuste: La API de Leder Data para Reniec devuelve los datos bajo la clave 'result'
+  if (endpoint.includes('reniec') && jsonObject && jsonObject.message === "found data" && jsonObject.result) {
+    const data = jsonObject.result || {}; // Accede a la clave 'result'
     title = 'Información RENIEC';
     dynamicContent = `
       <div class="mb-4 text-center">
-          <p class="text-xs text-gray-500">Consulta de ${data.source === 'database' ? 'Base de Datos' : 'Tiempo Real'}</p>
+          <p class="text-xs text-gray-500">Consulta de DNI</p>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
           <div>
               <p class="font-semibold text-gray-600">DNI:</p>
-              <p class="text-lg font-bold text-blue-600">${data.dni || 'No disponible'}</p>
+              <p class="text-lg font-bold text-blue-600">${data.nuDni || 'No disponible'}</p>
           </div>
           <div>
               <p class="font-semibold text-gray-600">Nombres:</p>
-              <p class="text-lg">${capitalize(data.nombres || '')} ${capitalize(data.apellidoPaterno || '')} ${capitalize(data.apellidoMaterno || '')}</p>
+              <p class="text-lg">${capitalize(data.preNombres || '')} ${capitalize(data.apePaterno || '')} ${capitalize(data.apeMaterno || '')}</p>
           </div>
           <div>
               <p class="font-semibold text-gray-600">Fecha de Nacimiento:</p>
-              <p>${data.fechaNacimiento || 'No disponible'}</p>
+              <p>${data.feNacimiento || 'No disponible'}</p>
           </div>
           <div>
               <p class="font-semibold text-gray-600">Estado Civil:</p>
@@ -54,16 +55,26 @@ const jsonToHtml = (endpoint, jsonObject) => {
           </div>
           <div>
               <p class="font-semibold text-gray-600">Restricción:</p>
-              <p>${capitalize(data.restriccion || 'No disponible')}</p>
+              <p>${capitalize(data.deRestriccion || 'No disponible')}</p>
           </div>
       </div>
       <hr class="my-6 border-gray-200">
       <div class="text-center">
           <p class="font-semibold text-gray-600">Dirección:</p>
-          <p class="text-sm text-gray-700">${capitalize(data.direccion || 'No disponible')}</p>
+          <p class="text-sm text-gray-700">${capitalize(data.desDireccion || 'No disponible')}</p>
       </div>
     `;
-  } else if (jsonObject && jsonObject.success === false) {
+  } else if (jsonObject && jsonObject.message && jsonObject.message.includes("not found")) {
+    title = 'Datos no encontrados';
+    dynamicContent = `
+        <div class="text-center py-8">
+            <p class="text-yellow-600 text-xl font-semibold mb-2">¡Atención!</p>
+            <p class="text-gray-700">${jsonObject.message}</p>
+            <p class="text-gray-500 text-sm mt-2">Verifica el DNI o los parámetros de búsqueda.</p>
+        </div>
+    `;
+  }
+  else if (jsonObject && jsonObject.success === false) {
     title = 'Error en la Consulta';
     dynamicContent = `
         <div class="text-center py-8">
